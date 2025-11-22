@@ -1,0 +1,64 @@
+# ===== SISTEMA =====
+.DS_Store
+Thumbs.db
+
+# ===== PYTHON =====
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.db
+*.sqlite3
+venv/
+env/
+.venv/
+.pytest_cache/
+.cache/
+.ipynb_checkpoints/
+*.log
+
+# ===== NODE =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.env
+.env.*
+
+# ===== C# / DOTNET =====
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.pdb
+*.mdb
+*.exe
+*.dll
+*.vs/
+.vscode/
+*.CodeAnalysisLog.xml
+*.orig
+
+# ===== EDITORES =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== DADOS QUE NÃO DEVEM IR PRO GITHUB =====
+*.csv
+*.xlsx
+*.json
+data/
+backtests/
+results/
+outputs/
+
+# ===== ARQUIVOS SENSÍVEIS =====
+config.local.json
+secret.json
+credentials.json
