@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34321.82
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DojoRelatorio", "DojoRelatorio\DojoRelatorio.csproj", "{B17B15DD-6DF1-4325-A9E9-35E1C6B0D301}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DojoMergeTreino", "DojoMergeTreino\DojoMergeTreino.csproj", "{593DF173-8629-4637-AF2F-15FD79F422F8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimularTrades", "SimularTrades\SimularTrades.csproj", "{F0AEC335-7067-404F-B916-ABA2FEEDD7A8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DojoRelatorioSimulado", "DojoRelatorioSimulado\DojoRelatorioSimulado.csproj", "{33BE2DB3-4EE1-4E28-89B2-99B9D2265E1E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimularTrailingStops", "SimularTrailingStops\SimularTrailingStops.csproj", "{B3286216-0BCA-4B86-B338-16411A89EB06}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimularTradesAdvancedTrailing", "SimularTradesAdvancedTrailing\SimularTradesAdvancedTrailing.csproj", "{A0FAF0A8-91F3-4B0E-B34B-6DAF7DAFF1D5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PontoFixoAnalyser", "PontoFixoAnalyser\PontoFixoAnalyser.csproj", "{1AC11709-7875-4539-8793-3DD240A53A9F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B17B15DD-6DF1-4325-A9E9-35E1C6B0D301}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B17B15DD-6DF1-4325-A9E9-35E1C6B0D301}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B17B15DD-6DF1-4325-A9E9-35E1C6B0D301}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B17B15DD-6DF1-4325-A9E9-35E1C6B0D301}.Release|Any CPU.Build.0 = Release|Any CPU
+		{593DF173-8629-4637-AF2F-15FD79F422F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{593DF173-8629-4637-AF2F-15FD79F422F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{593DF173-8629-4637-AF2F-15FD79F422F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{593DF173-8629-4637-AF2F-15FD79F422F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0AEC335-7067-404F-B916-ABA2FEEDD7A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0AEC335-7067-404F-B916-ABA2FEEDD7A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0AEC335-7067-404F-B916-ABA2FEEDD7A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0AEC335-7067-404F-B916-ABA2FEEDD7A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33BE2DB3-4EE1-4E28-89B2-99B9D2265E1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33BE2DB3-4EE1-4E28-89B2-99B9D2265E1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33BE2DB3-4EE1-4E28-89B2-99B9D2265E1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33BE2DB3-4EE1-4E28-89B2-99B9D2265E1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3286216-0BCA-4B86-B338-16411A89EB06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3286216-0BCA-4B86-B338-16411A89EB06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3286216-0BCA-4B86-B338-16411A89EB06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3286216-0BCA-4B86-B338-16411A89EB06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0FAF0A8-91F3-4B0E-B34B-6DAF7DAFF1D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0FAF0A8-91F3-4B0E-B34B-6DAF7DAFF1D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0FAF0A8-91F3-4B0E-B34B-6DAF7DAFF1D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0FAF0A8-91F3-4B0E-B34B-6DAF7DAFF1D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AC11709-7875-4539-8793-3DD240A53A9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AC11709-7875-4539-8793-3DD240A53A9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AC11709-7875-4539-8793-3DD240A53A9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AC11709-7875-4539-8793-3DD240A53A9F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {46FDB631-E3A4-4237-B1A8-8108FC045168}
+	EndGlobalSection
+EndGlobal
