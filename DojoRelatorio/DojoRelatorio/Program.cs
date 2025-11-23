@@ -15,7 +15,7 @@ namespace DojoRelatorio
         {
 
 
-            string exeFolderPath = @"C:\Users\Camilo\Documents\OLIVER2\"; // Obtém a pasta do executável
+            string exeFolderPath = @"C:\Relatorios\Export"; // Obtém a pasta do executável
 
             if (!Directory.Exists(exeFolderPath))
             {
@@ -23,7 +23,7 @@ namespace DojoRelatorio
                 Console.ReadKey();
 
             }
-            string[] csvFiles = Directory.GetFiles(exeFolderPath, "*merged*.csv"); // Busca por arquivos CSV na pasta
+            string[] csvFiles = Directory.GetFiles(exeFolderPath, "*.csv"); // Busca por arquivos CSV na pasta
 
             if (csvFiles.Length == 0)
             {
