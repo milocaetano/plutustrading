@@ -19,13 +19,13 @@ namespace SimularRelatorioOperacoes
                 Console.WriteLine("=== Simulador de Estratégia com Relatório Estilo Profit ===\n");
 
                 Console.Write("Informe o StopLoss (pontos): ");
-                int stopLoss = 220;
+                int stopLoss = 350;
 
                 Console.Write("Informe o Profit 1 (pontos): ");
-                int profit1 = 185;
+                int profit1 = 295;
 
                 Console.Write("Informe o Profit 2 (pontos): ");
-                int profit2 = 260;
+                int profit2 = 535;
 
                 if (profit2 <= profit1)
                 {

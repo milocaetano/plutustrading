@@ -35,7 +35,7 @@ namespace SimularTrades
                 Console.WriteLine($"Entradas carregadas: {entradas.Count}");
                 Console.WriteLine($"Candles carregados: {historico.Count}");
 
-                var estrategias = GerarEstrategias(10); // quantidade de estratégias a testar
+                var estrategias = GerarEstrategias(10000); // quantidade de estratégias a testar
 
                 var resultados = new List<string>
                 {
@@ -63,19 +63,14 @@ namespace SimularTrades
         // HELPERS GERAIS
         // =========================================================
 
-        // Converte "133.615,00" -> 133615
         static int ParsePreco(string precoBruto)
         {
             if (string.IsNullOrWhiteSpace(precoBruto))
                 return 0;
 
             precoBruto = precoBruto.Trim();
-
-            // remove pontos de milhar
             string semMilhar = precoBruto.Replace(".", "");
-            // pega só a parte inteira antes da vírgula
             string parteInteira = semMilhar.Split(',')[0];
-
             return int.Parse(parteInteira);
         }
 
@@ -88,21 +83,17 @@ namespace SimularTrades
             var linhas = File.ReadAllLines(path);
             var trades = new List<Trade>();
 
-            // Ignorar as primeiras 3 linhas (cabeçalhos com informações da conta)
             foreach (var linha in linhas.Skip(3))
             {
                 if (string.IsNullOrWhiteSpace(linha))
                     continue;
 
                 var dados = linha.Split(';');
-
-                // Validar se temos dados suficientes
                 if (dados.Length < 8)
                     continue;
 
                 try
                 {
-                    // Formato: Ativo;Abertura;Fechamento;Tempo Operação;Qtd Compra;Qtd Venda;Lado;Preço Compra;Preço Venda...
                     DateTime dataHora = DateTime.ParseExact(
                         dados[1].Trim(),
                         "dd/MM/yyyy HH:mm:ss",
@@ -110,24 +101,15 @@ namespace SimularTrades
                     );
 
                     string tipo = dados[6].Trim().ToUpperInvariant(); // "C" ou "V"
+                    int precoCompra = ParsePreco(dados[7]);
+                    int precoVenda = dados.Length > 8 ? ParsePreco(dados[8]) : 0;
 
-                    // Preço de compra e venda no formato "133.615,00"
-                    int precoCompra = ParsePreco(dados[7]); // Preço Compra
-
-                    int precoVenda = 0;
-                    if (dados.Length > 8)
-                        precoVenda = ParsePreco(dados[8]); // Preço Venda (ajuste o índice se o seu CSV for diferente)
-
-                    // Regra:
-                    // - Se for COMPRA (C), entrada = Preço Compra
-                    // - Se for VENDA  (V), entrada = Preço Venda (se existir), senão usa Compra como fallback
                     int precoEntrada = tipo == "C"
                         ? precoCompra
                         : (precoVenda != 0 ? precoVenda : precoCompra);
 
                     int qtdCompra = int.Parse(dados[4].Trim());
                     int qtdVenda = int.Parse(dados[5].Trim());
-
                     int quantidade = qtdCompra > 0 ? qtdCompra : qtdVenda;
 
                     if (quantidade <= 0)
@@ -148,7 +130,6 @@ namespace SimularTrades
                 {
                     Console.WriteLine($"[AVISO] Erro ao processar linha: {linha}");
                     Console.WriteLine($"Detalhes: {ex.Message}");
-                    continue;
                 }
             }
 
@@ -160,7 +141,7 @@ namespace SimularTrades
             var linhas = File.ReadAllLines(path);
             var candles = new List<Candle>();
 
-            foreach (var linha in linhas.Skip(1)) // Ignorar cabeçalho
+            foreach (var linha in linhas.Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(linha))
                     continue;
@@ -168,14 +149,9 @@ namespace SimularTrades
                 try
                 {
                     var dados = linha.Split(';');
-
                     if (dados.Length < 7)
-                    {
-                        Console.WriteLine($"[AVISO] Linha com dados insuficientes: {linha}");
                         continue;
-                    }
 
-                    // Combinar Data (dados[1]) e Hora (dados[2]) no formato "dd/MM/yyyy HH:mm:ss"
                     DateTime dataHora = DateTime.ParseExact(
                         $"{dados[1].Trim()} {dados[2].Trim()}",
                         "dd/MM/yyyy HH:mm:ss",
@@ -200,7 +176,6 @@ namespace SimularTrades
                 {
                     Console.WriteLine($"[AVISO] Erro ao processar linha do histórico: {linha}");
                     Console.WriteLine($"Detalhes: {ex.Message}");
-                    continue;
                 }
             }
 
@@ -228,12 +203,12 @@ namespace SimularTrades
 
             for (int i = 0; i < numeroEstrategias; i++)
             {
-                int parcial1 = rand.Next(50, 300) / 5 * 5;        // Múltiplo de 5
-                int parcial2 = rand.Next(parcial1 + 5, 701) / 5 * 5; // Garante P2 > P1
+                int parcial1 = rand.Next(50, 300) / 5 * 5;
+                int parcial2 = rand.Next(parcial1 + 5, 701) / 5 * 5;
 
                 estrategias.Add(new Estrategia
                 {
-                    StopLoss = rand.Next(100, 500) / 5 * 5, // Múltiplo de 5
+                    StopLoss = rand.Next(100, 500) / 5 * 5,
                     Parcial1 = parcial1,
                     Parcial2 = parcial2
                 });
@@ -280,12 +255,10 @@ namespace SimularTrades
                     0
                 );
 
-                // Candles a partir do horário do trade
                 var candlesTrade = candlesDoDia
                     .Where(c => c.DataHora >= tradeTimeWithoutSeconds)
                     .ToList();
 
-                // Se o trade está após o último candle do dia, fecha no fechamento do dia
                 if (candlesTrade.Count == 0)
                 {
                     var ultimoCandle = candlesDoDia.Last();
@@ -311,40 +284,27 @@ namespace SimularTrades
                 int precoEntradaCorrigido = trade.PrecoEntrada;
                 var primeiroCandle = candlesTrade.First();
 
-                // Agora NÃO ajustamos mais o preço pro range do candle, só avisamos
                 if (precoEntradaCorrigido < primeiroCandle.PrecoMinimo ||
                     precoEntradaCorrigido > primeiroCandle.PrecoMaximo)
                 {
                     int diferencaParaMinima = primeiroCandle.PrecoMinimo - precoEntradaCorrigido;
                     int diferencaParaMaxima = precoEntradaCorrigido - primeiroCandle.PrecoMaximo;
-
-                    // Verifica qual é a diferença mais próxima
                     int diferencaMaisProxima = precoEntradaCorrigido < primeiroCandle.PrecoMinimo
                         ? diferencaParaMinima
                         : diferencaParaMaxima;
 
-                    // Se a diferença for <= 50 pontos, ajusta para o valor mais próximo
                     if (diferencaMaisProxima <= 50)
                     {
                         int novoPreco = precoEntradaCorrigido < primeiroCandle.PrecoMinimo
                             ? primeiroCandle.PrecoMinimo
                             : primeiroCandle.PrecoMaximo;
 
-                        Console.WriteLine(
-                            $"[AJUSTE] Preço de entrada {precoEntradaCorrigido} ajustado para {novoPreco} " +
-                            $"(diferença de {diferencaMaisProxima} pontos dentro do range " +
-                            $"{primeiroCandle.PrecoMinimo} - {primeiroCandle.PrecoMaximo}) do candle em {primeiroCandle.DataHora}."
-                        );
+                        Console.WriteLine($"[AJUSTE] Preço de entrada {precoEntradaCorrigido} ajustado para {novoPreco} (diferença {diferencaMaisProxima} dentro do range {primeiroCandle.PrecoMinimo}-{primeiroCandle.PrecoMaximo})");
                         precoEntradaCorrigido = novoPreco;
                     }
                     else
                     {
-                        Console.WriteLine(
-                            $"[AVISO] Preço de entrada {precoEntradaCorrigido} está fora do range " +
-                            $"({primeiroCandle.PrecoMinimo} - {primeiroCandle.PrecoMaximo}) do primeiro candle em {primeiroCandle.DataHora}. " +
-                            $"Isso normalmente indica divergência entre o relatório de operações e o histórico de 1 minuto."
-                        );
-                        // Mantém precoEntradaCorrigido como está
+                        Console.WriteLine($"[AVISO] Entrada {precoEntradaCorrigido} fora do range ({primeiroCandle.PrecoMinimo}-{primeiroCandle.PrecoMaximo}) do primeiro candle {primeiroCandle.DataHora}. Trade ignorado.");
                         continue;
                     }
                 }
@@ -382,7 +342,7 @@ namespace SimularTrades
                 }
                 else
                 {
-                    Console.WriteLine($"[AVISO] Tipo de trade '{trade.Tipo}' inválido em {trade.DataHora}. Esperado 'C' ou 'V'. Ignorando trade.");
+                    Console.WriteLine($"[AVISO] Tipo inválido '{trade.Tipo}' em {trade.DataHora}. Ignorando trade.");
                     continue;
                 }
 
@@ -402,7 +362,6 @@ namespace SimularTrades
 
                     if (!executouP1)
                     {
-                        // SL e P1 no mesmo candle -> regra conservadora: SL primeiro
                         if (atingiuStop && atingiuP1)
                         {
                             int pontos = trade.Tipo == "C"
@@ -413,11 +372,10 @@ namespace SimularTrades
                             precoSaidaFinal = stopPrice;
                             tradeEncerrado = true;
 
-                            Console.WriteLine($"[STOP LOSS] (SL prioritário com P1 no mesmo candle) {trade.DataHora}, entrada {precoEntradaCorrigido}, saída {precoSaidaFinal}, lucro R${(pnlP1 + pnlResto):F2}");
+                            Console.WriteLine($"[STOP LOSS] (SL prioritário c/ P1 mesmo candle) {trade.DataHora} saída {precoSaidaFinal} lucro R${(pnlP1 + pnlResto):F2}");
                             break;
                         }
 
-                        // SL sozinho
                         if (atingiuStop)
                         {
                             int pontos = trade.Tipo == "C"
@@ -428,12 +386,11 @@ namespace SimularTrades
                             precoSaidaFinal = stopPrice;
                             tradeEncerrado = true;
 
-                            Console.WriteLine($"[STOP LOSS] {trade.DataHora}, entrada {precoEntradaCorrigido}, saída {precoSaidaFinal}, lucro R${(pnlP1 + pnlResto):F2}");
+                            Console.WriteLine($"[STOP LOSS] {trade.DataHora} saída {precoSaidaFinal} lucro R${(pnlP1 + pnlResto):F2}");
                             break;
                         }
 
-                        // P1 sozinho
-                        if (atingiuP1)
+                        if (atingiuP1 && qtdP1 > 0)
                         {
                             int pontosP1 = trade.Tipo == "C"
                                 ? p1Price - precoEntradaCorrigido
@@ -442,15 +399,15 @@ namespace SimularTrades
                             pnlP1 = pontosP1 * qtdP1 * valorPorPonto;
                             executouP1 = true;
 
-                            Console.WriteLine($"[P1] {trade.DataHora}, entrada {precoEntradaCorrigido}, saída P1 {p1Price}, lucro parcial R${pnlP1:F2}");
-                            // metade da posição zerada, metade continua
+                            Console.WriteLine($"[P1] {trade.DataHora} saída P1 {p1Price} lucro parcial R${pnlP1:F2}");
+                        }
+                        else if (atingiuP1 && qtdP1 == 0)
+                        {
+                            Console.WriteLine($"[INFO] P1 atingido sem lote disponível (contratos={qtdTotal}). Parcial ignorada.");
                         }
                     }
                     else
                     {
-                        // Após P1: apenas SL e P2 para o restante da posição
-
-                        // SL e P2 no mesmo candle -> regra conservadora: SL primeiro
                         if (atingiuStop && atingiuP2)
                         {
                             int pontos = trade.Tipo == "C"
@@ -461,7 +418,7 @@ namespace SimularTrades
                             precoSaidaFinal = stopPrice;
                             tradeEncerrado = true;
 
-                            Console.WriteLine($"[STOP LOSS] após P1 (SL prioritário c/ P2 no mesmo candle) {trade.DataHora}, saída {precoSaidaFinal}, lucro total R${(pnlP1 + pnlResto):F2}");
+                            Console.WriteLine($"[STOP LOSS] após P1 (mesmo candle c/ P2) {trade.DataHora} saída {precoSaidaFinal} lucro R${(pnlP1 + pnlResto):F2}");
                             break;
                         }
 
@@ -475,7 +432,7 @@ namespace SimularTrades
                             precoSaidaFinal = stopPrice;
                             tradeEncerrado = true;
 
-                            Console.WriteLine($"[STOP LOSS] após P1 {trade.DataHora}, saída {precoSaidaFinal}, lucro total R${(pnlP1 + pnlResto):F2}");
+                            Console.WriteLine($"[STOP LOSS] após P1 {trade.DataHora} saída {precoSaidaFinal} lucro R${(pnlP1 + pnlResto):F2}");
                             break;
                         }
 
@@ -490,12 +447,11 @@ namespace SimularTrades
                             tradeEncerrado = true;
                             gainsTotais++;
 
-                            Console.WriteLine($"[P2] {trade.DataHora}, entrada {precoEntradaCorrigido}, saída P2 {precoSaidaFinal}, lucro total R${(pnlP1 + pnlResto):F2}");
+                            Console.WriteLine($"[P2] {trade.DataHora} saída P2 {precoSaidaFinal} lucro total R${(pnlP1 + pnlResto):F2}");
                             break;
                         }
                     }
 
-                    // Se chegamos ao último candle dessa operação e ainda está aberta, sair no fechamento
                     if (candle == candlesTrade.Last())
                     {
                         int precoClose = candle.PrecoFechamento;
@@ -510,29 +466,28 @@ namespace SimularTrades
                         else
                         {
                             pnlResto = pontosRestante * qtdResto * valorPorPonto;
-                            gainsParciais++; // teve P1, mas não P2
+                            if (qtdP1 > 0) // só conta ganho parcial real
+                                gainsParciais++;
                         }
 
                         precoSaidaFinal = precoClose;
                         tradeEncerrado = true;
 
-                        Console.WriteLine($"[SAÍDA FIM DO DIA] {trade.DataHora}, entrada {precoEntradaCorrigido}, saída {precoSaidaFinal}, lucro total R${(pnlP1 + pnlResto):F2}");
+                        Console.WriteLine($"[SAÍDA FIM DO DIA] {trade.DataHora} saída {precoSaidaFinal} lucro R${(pnlP1 + pnlResto):F2}");
                     }
                 }
 
                 if (!tradeEncerrado)
                 {
-                    Console.WriteLine($"[ERRO] Trade {trade.DataHora} terminou sem encerramento explícito. Isso indica bug na lógica.");
+                    Console.WriteLine($"[ERRO] Trade {trade.DataHora} terminou sem encerramento explícito.");
                     continue;
                 }
 
                 decimal lucroFinanceiro = pnlP1 + pnlResto;
                 totalTradesSimulados++;
 
-                if (lucroFinanceiro > 0)
-                    acertos++;
-                else if (lucroFinanceiro < 0)
-                    perdas++;
+                if (lucroFinanceiro > 0) acertos++;
+                else if (lucroFinanceiro < 0) perdas++;
 
                 lucroTotal += lucroFinanceiro;
 
@@ -560,10 +515,6 @@ namespace SimularTrades
             return $"{estrategia.StopLoss};{estrategia.Parcial1};{estrategia.Parcial2};{taxaAcerto:F2}%;{taxaGainParcial:F2}%;{taxaGainTotal:F2}%;{taxaPrejuizo:F2}%;R${lucroMedio:F2};R${lucroTotal:F2}";
         }
     }
-
-    // =========================================================
-    // MODELOS adf
-    // =========================================================
 
     class Trade
     {
