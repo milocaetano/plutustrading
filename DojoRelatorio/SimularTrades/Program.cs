@@ -37,8 +37,10 @@ namespace SimularTrades
 
                 var estrategias = GerarEstrategias(1000); // quantidade de estratégias a testar
 
-                var resultados = new List<string>();
-                resultados.Add("StopLoss;Parcial1;Parcial2;TaxaAcerto;TaxaGainParcial;TaxaGainTotal;TaxaPrejuizo;LucroMedio;LucroTotal");
+                var resultados = new List<string>
+                {
+                    "StopLoss;Parcial1;Parcial2;TaxaAcerto;TaxaGainParcial;TaxaGainTotal;TaxaPrejuizo;LucroMedio;LucroTotal"
+                };
 
                 foreach (var estrategia in estrategias)
                 {
@@ -55,6 +57,26 @@ namespace SimularTrades
                 Console.WriteLine("ERRO GERAL:");
                 Console.WriteLine(ex);
             }
+        }
+
+        // =========================================================
+        // HELPERS GERAIS
+        // =========================================================
+
+        // Converte "133.615,00" -> 133615
+        static int ParsePreco(string precoBruto)
+        {
+            if (string.IsNullOrWhiteSpace(precoBruto))
+                return 0;
+
+            precoBruto = precoBruto.Trim();
+
+            // remove pontos de milhar
+            string semMilhar = precoBruto.Replace(".", "");
+            // pega só a parte inteira antes da vírgula
+            string parteInteira = semMilhar.Split(',')[0];
+
+            return int.Parse(parteInteira);
         }
 
         // =========================================================
@@ -80,7 +102,7 @@ namespace SimularTrades
 
                 try
                 {
-                    // Formato: Ativo;Abertura;Fechamento;Tempo Operação;Qtd Compra;Qtd Venda;Lado;Preço Compra...
+                    // Formato: Ativo;Abertura;Fechamento;Tempo Operação;Qtd Compra;Qtd Venda;Lado;Preço Compra;Preço Venda...
                     DateTime dataHora = DateTime.ParseExact(
                         dados[1].Trim(),
                         "dd/MM/yyyy HH:mm:ss",
@@ -89,15 +111,19 @@ namespace SimularTrades
 
                     string tipo = dados[6].Trim().ToUpperInvariant(); // "C" ou "V"
 
-                    // Preço compra no formato "133.615,00"
-                    string precoBruto = dados[7].Trim();
+                    // Preço de compra e venda no formato "133.615,00"
+                    int precoCompra = ParsePreco(dados[7]); // Preço Compra
 
-                    // remove pontos de milhar
-                    string semMilhar = precoBruto.Replace(".", "");
-                    // usa só a parte inteira antes da vírgula
-                    string parteInteira = semMilhar.Split(',')[0];
+                    int precoVenda = 0;
+                    if (dados.Length > 8)
+                        precoVenda = ParsePreco(dados[8]); // Preço Venda (ajuste o índice se o seu CSV for diferente)
 
-                    int precoEntrada = int.Parse(parteInteira);
+                    // Regra:
+                    // - Se for COMPRA (C), entrada = Preço Compra
+                    // - Se for VENDA  (V), entrada = Preço Venda (se existir), senão usa Compra como fallback
+                    int precoEntrada = tipo == "C"
+                        ? precoCompra
+                        : (precoVenda != 0 ? precoVenda : precoCompra);
 
                     int qtdCompra = int.Parse(dados[4].Trim());
                     int qtdVenda = int.Parse(dados[5].Trim());
@@ -156,11 +182,10 @@ namespace SimularTrades
                         CultureInfo.InvariantCulture
                     );
 
-                    // Tratar os preços: remover pontos de milhar e pegar apenas a parte inteira antes da vírgula
-                    int precoAbertura = int.Parse(dados[3].Trim().Replace(".", "").Split(',')[0]);
-                    int precoMaximo = int.Parse(dados[4].Trim().Replace(".", "").Split(',')[0]);
-                    int precoMinimo = int.Parse(dados[5].Trim().Replace(".", "").Split(',')[0]);
-                    int precoFechamento = int.Parse(dados[6].Trim().Replace(".", "").Split(',')[0]);
+                    int precoAbertura = ParsePreco(dados[3]);
+                    int precoMaximo = ParsePreco(dados[4]);
+                    int precoMinimo = ParsePreco(dados[5]);
+                    int precoFechamento = ParsePreco(dados[6]);
 
                     candles.Add(new Candle
                     {
@@ -286,15 +311,16 @@ namespace SimularTrades
                 int precoEntradaCorrigido = trade.PrecoEntrada;
                 var primeiroCandle = candlesTrade.First();
 
+                // Agora NÃO ajustamos mais o preço pro range do candle, só avisamos
                 if (precoEntradaCorrigido < primeiroCandle.PrecoMinimo ||
                     precoEntradaCorrigido > primeiroCandle.PrecoMaximo)
                 {
-                    // Se ainda aparecer isso depois de corrigir o parsing, provavelmente é problema de dado.
-                    Console.WriteLine($"[AVISO] Preço de entrada {precoEntradaCorrigido} fora do range do primeiro candle ({primeiroCandle.PrecoMinimo}-{primeiroCandle.PrecoMaximo}) em {primeiroCandle.DataHora}. Ajustando para o limite mais próximo.");
-                    precoEntradaCorrigido = Math.Min(
-                        Math.Max(precoEntradaCorrigido, primeiroCandle.PrecoMinimo),
-                        primeiroCandle.PrecoMaximo
+                    Console.WriteLine(
+                        $"[AVISO] Preço de entrada {precoEntradaCorrigido} está fora do range " +
+                        $"({primeiroCandle.PrecoMinimo} - {primeiroCandle.PrecoMaximo}) do primeiro candle em {primeiroCandle.DataHora}. " +
+                        $"Isso normalmente indica divergência entre o relatório de operações e o histórico de 1 minuto."
                     );
+                    // Mantém precoEntradaCorrigido como está
                 }
 
                 int qtdTotal = trade.Quantidade;
@@ -392,7 +418,6 @@ namespace SimularTrades
 
                             Console.WriteLine($"[P1] {trade.DataHora}, entrada {precoEntradaCorrigido}, saída P1 {p1Price}, lucro parcial R${pnlP1:F2}");
                             // metade da posição zerada, metade continua
-                            // segue para próximo candle
                         }
                     }
                     else
