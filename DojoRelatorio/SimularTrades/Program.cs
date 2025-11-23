@@ -14,14 +14,30 @@ namespace SimularTrades
         static void Main()
         {
             try
-            {   //string entradasPath = "C:\\Relatorios\\entradas.csv"; // Arquivo com suas operações
-                string entradasPath = @"C:\temp\entradas.csv"; // Arquivo com suas operações
-                string historicoPath = @"C:\temp\WINFUT_F_0_1min.csv"; // Arquivo com histórico de 1 min
-                string resultadoPath = @"C:\temp\resultado.csv"; // Arquivo de saída
+            {   
+                string entradasPath = @"C:\Relatorios\operacoes.csv"; // Arquivo com suas operações
+                string historicoPath = @"C:\Relatorios\WINFUT_F_0_1min.csv"; // Arquivo com histórico de 1 min
+                string resultadoPath = @"C:\Relatorios\resultado.csv"; // Arquivo de saída
 
                 var entradas = LerEntradas(entradasPath);
                 var historico = LerHistoricoProfit(historicoPath);
-                var estrategias = GerarEstrategias(1000);
+                
+                if (entradas.Count == 0)
+                {
+                    Console.WriteLine("[ERRO] Nenhuma entrada foi carregada. Verifique o arquivo operacoes.csv");
+                    return;
+                }
+                
+                if (historico.Count == 0)
+                {
+                    Console.WriteLine("[ERRO] Nenhum candle foi carregado. Verifique o arquivo WINFUT_F_0_1min.csv");
+                    return;
+                }
+
+                Console.WriteLine($"Entradas carregadas: {entradas.Count}");
+                Console.WriteLine($"Candles carregados: {historico.Count}");
+                
+                var estrategias = GerarEstrategias(1000); // Reduzido para teste
 
                 List<string> resultados = new List<string>();
 
@@ -34,13 +50,12 @@ namespace SimularTrades
 
                 File.WriteAllLines(resultadoPath, resultados);
                 Console.WriteLine("Backtest concluído. Resultados salvos em resultado.csv");
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
-
+                Console.WriteLine("ERRO GERAL:");
                 Console.WriteLine(ex.ToString());
             }
-            
-          
         }
 
         static List<Trade> LerEntradas(string path)
@@ -48,19 +63,54 @@ namespace SimularTrades
             var linhas = File.ReadAllLines(path);
             var trades = new List<Trade>();
 
-            foreach (var linha in linhas)
+            // Ignorar as primeiras 3 linhas (cabeçalhos com informações da conta)
+            foreach (var linha in linhas.Skip(3))
             {
-                var dados = linha.Split(';');
-                string precoEntradaFormatado = dados[7].Replace(".", "").Split(',')[0]; // Removendo casas decimais e pontos
+                if (string.IsNullOrWhiteSpace(linha))
+                    continue;
 
-                trades.Add(new Trade
+                var dados = linha.Split(';');
+                
+                // Validar se temos dados suficientes
+                if (dados.Length < 8)
+                    continue;
+
+                try
                 {
-                    DataHora = DateTime.ParseExact(dados[1], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture),
-                    Tipo = dados[6],
-                    PrecoEntrada = int.Parse(precoEntradaFormatado),
-                    Quantidade = int.Parse(dados[5])
-                });
+                    // Formato: Ativo;Abertura;Fechamento;Tempo Operação;Qtd Compra;Qtd Venda;Lado;Preço Compra...
+                    // dados[0] = Ativo (ex: WINQ25)
+                    // dados[1] = Abertura (dd/MM/yyyy HH:mm:ss)
+                    // dados[6] = Lado (C ou V)
+                    // dados[7] = Preço Compra (com formato 133.615,00)
+
+                    DateTime dataHora = DateTime.ParseExact(dados[1].Trim(), "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                    string tipo = dados[6].Trim();
+                    
+                    // Remover pontos de milhar e converter vírgula para ponto
+                    string precoFormatado = dados[7].Trim().Replace(".", "").Replace(",", "");
+                    int preco = int.Parse(precoFormatado);
+                    
+                    // Quantidade de contratos (Qtd Compra + Qtd Venda, ou usar Qtd Compra)
+                    int qtdCompra = int.Parse(dados[4].Trim());
+                    int qtdVenda = int.Parse(dados[5].Trim());
+                    int quantidade = qtdCompra > 0 ? qtdCompra : qtdVenda;
+
+                    trades.Add(new Trade
+                    {
+                        DataHora = dataHora,
+                        Tipo = tipo,
+                        PrecoEntrada = preco,
+                        Quantidade = quantidade
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AVISO] Erro ao processar linha: {linha}");
+                    Console.WriteLine($"Detalhes: {ex.Message}");
+                    continue;
+                }
             }
+            
             return trades;
         }
 
@@ -72,25 +122,43 @@ namespace SimularTrades
 
             foreach (var linha in linhas.Skip(1)) // Ignorar cabeçalho
             {
-                var dados = linha.Split(';');
+                if (string.IsNullOrWhiteSpace(linha))
+                    continue;
 
-                // Combinar Data (dados[1]) e Hora (dados[2]) no formato "dd/MM/yyyy HH:mm:ss"
-                DateTime dataHora = DateTime.ParseExact($"{dados[1]} {dados[2]}", "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-
-                // Tratar os preços: remover pontos de milhar e pegar apenas a parte inteira antes da vírgula
-                int precoAbertura = int.Parse(dados[3].Replace(".", "").Split(',')[0]);
-                int precoMaximo = int.Parse(dados[4].Replace(".", "").Split(',')[0]);
-                int precoMinimo = int.Parse(dados[5].Replace(".", "").Split(',')[0]);
-                int precoFechamento = int.Parse(dados[6].Replace(".", "").Split(',')[0]);
-
-                candles.Add(new Candle
+                try
                 {
-                    DataHora = dataHora,
-                    PrecoAbertura = precoAbertura,
-                    PrecoMaximo = precoMaximo,
-                    PrecoMinimo = precoMinimo,
-                    PrecoFechamento = precoFechamento
-                });
+                    var dados = linha.Split(';');
+
+                    if (dados.Length < 7)
+                    {
+                        Console.WriteLine($"[AVISO] Linha com dados insuficientes: {linha}");
+                        continue;
+                    }
+
+                    // Combinar Data (dados[1]) e Hora (dados[2]) no formato "dd/MM/yyyy HH:mm:ss"
+                    DateTime dataHora = DateTime.ParseExact($"{dados[1].Trim()} {dados[2].Trim()}", "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+
+                    // Tratar os preços: remover pontos de milhar e pegar apenas a parte inteira antes da vírgula
+                    int precoAbertura = int.Parse(dados[3].Trim().Replace(".", "").Split(',')[0]);
+                    int precoMaximo = int.Parse(dados[4].Trim().Replace(".", "").Split(',')[0]);
+                    int precoMinimo = int.Parse(dados[5].Trim().Replace(".", "").Split(',')[0]);
+                    int precoFechamento = int.Parse(dados[6].Trim().Replace(".", "").Split(',')[0]);
+
+                    candles.Add(new Candle
+                    {
+                        DataHora = dataHora,
+                        PrecoAbertura = precoAbertura,
+                        PrecoMaximo = precoMaximo,
+                        PrecoMinimo = precoMinimo,
+                        PrecoFechamento = precoFechamento
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AVISO] Erro ao processar linha do histórico: {linha}");
+                    Console.WriteLine($"Detalhes: {ex.Message}");
+                    continue;
+                }
             }
             return candles;
         }
@@ -150,8 +218,13 @@ namespace SimularTrades
 
                 DateTime tradeTime = trade.DataHora;
                 DateTime tradeTimeWithoutSeconds = new DateTime(tradeTime.Year, tradeTime.Month, tradeTime.Day, tradeTime.Hour, tradeTime.Minute, 0);
-                //grok corrigir e colocar apenas a data do dia do trade para nao fazer swing trade apenas day trade
-                var candlesTrade = historico.Where(c => c.DataHora >= tradeTimeWithoutSeconds).OrderBy(c => c.DataHora).ToList();
+                DateTime tradeDateOnly = tradeTime.Date;
+                
+                // Filtrar candles apenas do mesmo dia do trade (day trade, não swing trade)
+                var candlesTrade = historico
+                    .Where(c => c.DataHora.Date == tradeDateOnly && c.DataHora >= tradeTimeWithoutSeconds)
+                    .OrderBy(c => c.DataHora)
+                    .ToList();
 
                 if (candlesTrade.Count == 0)
                 {
@@ -165,7 +238,7 @@ namespace SimularTrades
                     if (trade.PrecoEntrada < primeiroCandle.PrecoMinimo || trade.PrecoEntrada > primeiroCandle.PrecoMaximo)
                     {
                         Console.WriteLine($"[AVISO] Preço de entrada {trade.PrecoEntrada} está fora do range ({primeiroCandle.PrecoMinimo} - {primeiroCandle.PrecoMaximo}). Ajustando...");
-                        decimal precoMedioCandle = (primeiroCandle.PrecoMaximo + primeiroCandle.PrecoMinimo) / 2;
+                        decimal precoMedioCandle = (primeiroCandle.PrecoMaximo + primeiroCandle.PrecoMinimo) / 2m;
                         trade.PrecoEntrada = Convert.ToInt32(precoMedioCandle);
                         Console.WriteLine($"[INFO] Novo preço de entrada ajustado para: {trade.PrecoEntrada}");
                     }
@@ -185,8 +258,11 @@ namespace SimularTrades
                 bool p1FoiExecutado = false;
                 bool stopFoiExecutado = false;
                 decimal lucroPontos = 0;
+                bool operacaoEncerrada = false;
+                
                 foreach (var candle in candlesTrade)
                 {
+                    if (operacaoEncerrada) break;
 
                     bool candlePositivo = candle.PrecoFechamento > candle.PrecoAbertura;
                     bool candleNegativo = candle.PrecoFechamento < candle.PrecoAbertura;
@@ -211,6 +287,7 @@ namespace SimularTrades
                                 lucroFinanceiro = lucroPontos * trade.Quantidade * 0.2m;
                                 stopFoiExecutado = true;
                                 perdas++;
+                                operacaoEncerrada = true;
                                 Console.WriteLine($"[STOP LOSS] Priorizado no mesmo candle que P1: Entrada {trade.PrecoEntrada}, Saída {precoSaida}, Lucro: {lucroFinanceiro:F2}");
                             }
                             else
@@ -230,6 +307,7 @@ namespace SimularTrades
                             lucroFinanceiro = lucroPontos * trade.Quantidade * 0.2m;
                             stopFoiExecutado = true;
                             perdas++;
+                            operacaoEncerrada = true;
                             Console.WriteLine($"[STOP LOSS] Após P1: Entrada {trade.PrecoEntrada}, Saída {precoSaida}, Lucro: {lucroFinanceiro:F2}");
                         }
                         else // Stop sozinho
@@ -239,6 +317,7 @@ namespace SimularTrades
                             lucroFinanceiro = lucroPontos * trade.Quantidade * 0.2m;
                             stopFoiExecutado = true;
                             perdas++;
+                            operacaoEncerrada = true;
                             Console.WriteLine($"[STOP LOSS] Sozinho: Entrada {trade.PrecoEntrada}, Saída {precoSaida}, Lucro: {lucroFinanceiro:F2}");
                         }
 
@@ -259,21 +338,26 @@ namespace SimularTrades
                         precoSaida = trade.PrecoEntrada + (trade.Tipo == "C" ? lucroPontos : -lucroPontos);
                         lucroFinanceiro = lucroPontos * trade.Quantidade * 0.2m;
                         gainsTotais++;
+                        operacaoEncerrada = true;
                         Console.WriteLine($"[P2 GAIN] Após P1: Entrada {trade.PrecoEntrada}, Saída {precoSaida}, Lucro: {lucroFinanceiro:F2}");
-                        break;
                     }
-
-
-                  //  //corrige isso daqui. Tipo se tiver feito parcial p1. pega a diferença entre o fechamento do dia com preço de entrada. Calcula  (porcentagemParcial * (diferença) +  lestrategia.Parcial1 * porcentagemParcial)
-                  //assim vc calcula o lucroPontos e depois o lucro financeiro com base nos codigos anterior se inspira ai 
-                  // e se nao bateu p1. Vc vai calc
                     
-                    if (!stopFoiExecutado && !p1FoiExecutado && candle == candlesTrade.Last())
+                    // Saída padrão no fechamento do último candle
+                    if (!operacaoEncerrada && candle == candlesTrade.Last())
                     {
                         precoSaida = candle.PrecoFechamento;
                         lucroPontos = trade.Tipo == "C" ? precoSaida - trade.PrecoEntrada : trade.PrecoEntrada - precoSaida;
+                        
+                        // Se já teve P1, combinar com fechamento
+                        if (p1FoiExecutado)
+                        {
+                            decimal diferenca = trade.Tipo == "C" ? precoSaida - trade.PrecoEntrada : trade.PrecoEntrada - precoSaida;
+                            lucroPontos = estrategia.Parcial1 * porcentagemParcial + (diferenca * porcentagemParcial);
+                        }
+                        
                         lucroFinanceiro = lucroPontos * trade.Quantidade * 0.2m;
                         Console.WriteLine($"[SAÍDA PADRÃO] Nenhum alvo atingido, saída no fechamento: {precoSaida}, Lucro: {lucroFinanceiro:F2}");
+                        operacaoEncerrada = true;
                     }
                 }
 
@@ -406,7 +490,7 @@ namespace SimularTrades
                                     Console.WriteLine($"[STOP LOSS] Atingiu no mesmo Trade encerrado: Entrada {trade.PrecoEntrada}, Saída {precoSaida}, Lucro: {lucroFinanceiro:F2}");
 
                                 }
-                                else //p1 foi executado primeiro no mesmo candle e sera avialiado primeiro, logo o stop nao sera executado
+                                else //p1 foi executado primeiro no mesmo candle e sera avialiado primeiro, logo o stop naosera executado
                                 {
                                     p1FoiExecutado =true;
                                     stopFoiExecutado = false;
